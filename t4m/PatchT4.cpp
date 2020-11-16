@@ -232,18 +232,21 @@ void PatchT4()
 	//if (!GetModuleHandle("gameoverlayrenderer.dll"))
 	//	loadGameOverlay(); // nullsub 
 
+
+	// init the bot commands
 	for (int i = 0; i < MAX_G_BOTAI_ENTRIES; i++)
 	{
 		g_botai[i] = { 0 };
 		g_botai[i].weapon = 1;
 	}
 
-	SV_UpdateBots.initialize(0x57F6C4, SV_UpdateBotsStub, 5, false);
-	SV_UpdateBots.installHook();
+	// Prevent the default behaviour of the bots
+	Detours::X86::DetourFunction((PBYTE)0x57F46B, (PBYTE)&NOOP, Detours::X86Option::USE_CALL);
 
-	SV_MoveBotHook.initialize(0x57F46B, NOOP, 5, false);
-	SV_MoveBotHook.installHook();
+	// Have the bots perform actions according to their g_botai entry
+	Detours::X86::DetourFunction((PBYTE)0x57F6C4, (PBYTE)&SV_UpdateBotsStub, Detours::X86Option::USE_CALL);
 
+	// Patch the Scr_GetMethod so we can use custom GSC calls
 	Detours::X86::DetourFunction((PBYTE)0x52329F, (PBYTE)&GetFunctionStub, Detours::X86Option::USE_JUMP);
 	Detours::X86::DetourFunction((PBYTE)0x46B46F, (PBYTE)&GetFunctionStub, Detours::X86Option::USE_JUMP);
 	Detours::X86::DetourFunction((PBYTE)0x46C97F, (PBYTE)&GetFunctionStub, Detours::X86Option::USE_JUMP);
