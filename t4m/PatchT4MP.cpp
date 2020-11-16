@@ -20,6 +20,22 @@
 
 #define MAX_G_BOTAI_ENTRIES     64
 
+int Scr_GetInt(int slot)
+{
+	int result = 0;
+
+	DWORD _Scr_GetInt = 0x656130;
+	__asm
+	{
+		push slot
+		mov eax, slot
+		call _Scr_GetInt
+		add esp, 4
+		mov result, eax
+	}
+
+	return result;
+}
 
 char* Scr_GetString(int slot)
 {
@@ -131,6 +147,24 @@ static const BotAction_t BotActions[] =
 };
 
 
+int SV_DropClient(client_t* cl, char* reason)
+{
+	int result = 0;
+
+	DWORD _SV_DropClient = 0x576FD0;
+	void* a = cl;
+	__asm
+	{
+		push reason
+		mov eax, a
+		call _SV_DropClient
+		add esp, 4
+		mov result, eax
+	}
+
+	return result;
+}
+
 void SV_UpdateBotsStub()
 {
 	client_t* sv_clients = (client_t*)0x28C7B10;
@@ -141,6 +175,12 @@ void SV_UpdateBotsStub()
 	for (int i = 0; i < sv_maxclients; i++)
 	{
 		client_t* cl = &sv_clients[i];
+
+		if (!cl->isNotBot && cl->state == 2)
+		{
+			SV_DropClient(cl, "EXE_DISCONNECTED"); // remove the dead bots
+			continue;
+		}
 
 		if (cl->state < 3)
 			continue;
@@ -174,25 +214,60 @@ void NOOP()
 {
 }
 
-bool IsEntPlayer(unsigned int gNum)
+void botMoveForward(unsigned int gNum)
 {
-	unsigned int* ents = (unsigned int*)0x1F8E300;
-	unsigned int* ent = (unsigned int *)ents + 204 * gNum * 4;
+	if (gNum >= MAX_G_BOTAI_ENTRIES)
+		return;
 
-	return ent[97];
+	g_botai[gNum].forward = Scr_GetInt(0);
+}
+
+void botMoveRight(unsigned int gNum)
+{
+	if (gNum >= MAX_G_BOTAI_ENTRIES)
+		return;
+
+	g_botai[gNum].right = Scr_GetInt(0);
+}
+
+void botWeapon(unsigned int gNum)
+{
+	if (gNum >= MAX_G_BOTAI_ENTRIES)
+		return;
+
+	char* weapon = Scr_GetString(0);
+
+	g_botai[gNum].weapon = BG_GetWeaponIndexForName(weapon);
+}
+
+void botStop(unsigned int gNum)
+{
+	if (gNum >= MAX_G_BOTAI_ENTRIES)
+		return;
+
+	g_botai[gNum] = { 0 };
+	g_botai[gNum].weapon = 1;
 }
 
 void botAction(unsigned int gNum)
 {
-	if (gNum > MAX_G_BOTAI_ENTRIES || !IsEntPlayer(gNum))
+	if (gNum >= MAX_G_BOTAI_ENTRIES)
 		return;
 
 	char* action = Scr_GetString(0);
 
-	if (action[0] == '+')
-		g_botai[gNum].buttons = 0x1;
-	else
-		g_botai[gNum].buttons = 0x0;
+	for (size_t i = 0; i < sizeof(BotActions) / sizeof(BotAction_t); ++i)
+	{
+		if (strcmp(&action[1], BotActions[i].action))
+			continue;
+
+		if (action[0] == '+')
+			g_botai[gNum].buttons |= BotActions[i].key;
+		else
+			g_botai[gNum].buttons &= ~(BotActions[i].key);
+
+		return;
+	}
 }
 
 void* GetFunction(void* caller, const char** name, int* isDev)
@@ -201,6 +276,30 @@ void* GetFunction(void* caller, const char** name, int* isDev)
 	{
 		*isDev = 0;
 		return botAction;
+	}
+
+	if (!strcmp(*name, "botstop"))
+	{
+		*isDev = 0;
+		return botStop;
+	}
+
+	if (!strcmp(*name, "botweapon"))
+	{
+		*isDev = 0;
+		return botWeapon;
+	}
+
+	if (!strcmp(*name, "botmoveforward"))
+	{
+		*isDev = 0;
+		return botMoveForward;
+	}
+
+	if (!strcmp(*name, "botmoveright"))
+	{
+		*isDev = 0;
+		return botMoveRight;
 	}
 
 	return nullptr;
