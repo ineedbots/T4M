@@ -99,6 +99,37 @@ typedef struct usercmd_s {
 	char pad[24];
 } usercmd_t;
 
+typedef struct {
+	bool    allowoverflow;    // if false, do a Com_Error
+	bool    overflowed;        // set to true if the buffer size failed (with allowoverflow set)
+	bool    oob;            // set to true if the buffer size failed (with allowoverflow set)
+	int        readcount;
+	char* data;
+	int        bit;
+	int        maxsize;
+	int        cursize;                // for bitwise reads and writes
+	int ok;
+} msg_t;
+
+typedef enum {
+	NA_BOT,
+	NA_BAD,                    // an address lookup failed
+	NA_LOOPBACK,
+	NA_BROADCAST,
+	NA_IP,
+	NA_IPX,
+	NA_BROADCAST_IPX
+} netadrtype_t;
+
+typedef struct {
+	netadrtype_t    type;
+
+	char    ip[4];
+	char    ipx[12];
+
+	unsigned short    port;
+} netadr_t;
+
 typedef struct BotMovementInfo_t
 {
 	/* Actions */
@@ -146,6 +177,47 @@ static const BotAction_t BotActions[] =
 	{ "9", 33554432 },
 };
 
+
+void Scr_AddBool(int send)
+{
+	DWORD _Scr_AddBool = 0x656A10;
+
+	__asm
+	{
+		push send
+		mov eax, send
+		call _Scr_AddBool
+		add esp, 4
+	}
+}
+
+void SV_ConnectionlessPacket(msg_t* msg, netadr_t where)
+{
+	DWORD _SV_ConnectionlessPacket = 0x57E320;
+	int a = ((int*)(&where))[0];
+	int b = ((int*)(&where))[1];
+	int c = ((int*)(&where))[2];
+	int d = ((int*)(&where))[3];
+	int e = ((int*)(&where))[4];
+	int f = ((int*)(&where))[5];
+	__asm
+	{
+		push f
+		push e
+		push d
+		push c
+		push b
+		push a
+		push msg
+		call _SV_ConnectionlessPacket
+		add esp, 28
+	}
+}
+
+void SV_ConnectionlessPacketStub(msg_t* msg, netadr_t where)
+{
+	SV_ConnectionlessPacket(msg, where);
+}
 
 int SV_DropClient(client_t* cl, char* reason)
 {
@@ -212,6 +284,18 @@ void SV_UpdateBotsStub()
 
 void NOOP()
 {
+}
+
+void isBot(unsigned int gNum)
+{
+	int sv_maxclients = *(int*)(*(int*)0x23C3AA8 + 16);
+
+	if (gNum >= sv_maxclients)
+		return;
+
+	client_t* sv_clients = (client_t*)0x28C7B10;
+
+	Scr_AddBool(!(&sv_clients[gNum])->isNotBot);
 }
 
 void botMoveForward(unsigned int gNum)
@@ -302,6 +386,12 @@ void* GetFunction(void* caller, const char** name, int* isDev)
 		return botMoveRight;
 	}
 
+	if (!strcmp(*name, "isbot"))
+	{
+		*isDev = 0;
+		return isBot;
+	}
+
 	return nullptr;
 }
 
@@ -364,4 +454,10 @@ void PatchT4MP()
 	Detours::X86::DetourFunction((PBYTE)0x46B46F, (PBYTE)&GetFunctionStub, Detours::X86Option::USE_JUMP);
 	Detours::X86::DetourFunction((PBYTE)0x46C97F, (PBYTE)&GetFunctionStub, Detours::X86Option::USE_JUMP);
 	Detours::X86::DetourFunction((PBYTE)0x5233AE, (PBYTE)&GetFunctionStub2, Detours::X86Option::USE_JUMP);
+
+	// Patch incoming connectionless messages
+	Detours::X86::DetourFunction((PBYTE)0x57EB55, (PBYTE)&SV_ConnectionlessPacketStub, Detours::X86Option::USE_CALL);
+
+	// Allow Remote desktop
+	Detours::X86::DetourFunction((PBYTE)0x5D06F2, (PBYTE)0x5D0721, Detours::X86Option::USE_JUMP);
 }
