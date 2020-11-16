@@ -140,6 +140,7 @@ popd</Command>
     <ClCompile Include="PatchT4Script.cpp" />
     <ClCompile Include="SDLLP.cpp" />
     <ClCompile Include="PatchT4.cpp" />
+    <ClCompile Include="PatchT4MP.cpp" />
     <ClCompile Include="T4.cpp" />
     <ClCompile Include="Utils.cpp" />
   </ItemGroup>

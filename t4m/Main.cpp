@@ -83,10 +83,7 @@ bool __stdcall DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 {
 	if (dwReason == DLL_PROCESS_ATTACH)
 	{
-		//if (*(DWORD*)0x401000 == 0x9EF490B8 || *(DWORD*)0x401000 == 0x83EC8B55) // SP!
-		{
-			Main_SetSafeInit();
-		}
+		Main_SetSafeInit();
 	}
 	return true;
 }
