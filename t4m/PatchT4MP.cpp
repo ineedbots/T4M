@@ -251,6 +251,7 @@ void SV_UpdateBotsStub()
 		if (!cl->isNotBot && cl->state == 2)
 		{
 			SV_DropClient(cl, "EXE_DISCONNECTED"); // remove the dead bots
+			cl->state = 0;
 			continue;
 		}
 
@@ -298,6 +299,19 @@ void isBot(unsigned int gNum)
 	Scr_AddBool(!(&sv_clients[gNum])->isNotBot);
 }
 
+void RemoveTestclient(unsigned int gNum)
+{
+	int sv_maxclients = *(int*)(*(int*)0x23C3AA8 + 16);
+
+	if (gNum >= sv_maxclients)
+		return;
+
+	client_t* sv_clients = (client_t*)0x28C7B10;
+
+	SV_DropClient(&sv_clients[gNum], "EXE_DISCONNECTED");
+	(&sv_clients[gNum])->state = 0;
+}
+
 void botMovement(unsigned int gNum)
 {
 	if (gNum >= MAX_G_BOTAI_ENTRIES)
@@ -313,6 +327,9 @@ void botWeapon(unsigned int gNum)
 		return;
 
 	char* weapon = Scr_GetString(0);
+
+	if (!weapon)
+		return;
 
 	g_botai[gNum].weapon = BG_GetWeaponIndexForName(weapon);
 }
@@ -333,6 +350,9 @@ void botAction(unsigned int gNum)
 
 	char* action = Scr_GetString(0);
 
+	if (!action)
+		return;
+
 	for (size_t i = 0; i < sizeof(BotActions) / sizeof(BotAction_t); ++i)
 	{
 		if (strcmp(&action[1], BotActions[i].action))
@@ -347,76 +367,86 @@ void botAction(unsigned int gNum)
 	}
 }
 
-void* GetFunction(void* caller, const char** name, int* isDev)
+void* __cdecl GetFunction(const char** name)
 {
+	if (!name)
+		return nullptr;
+
 	if (!strcmp(*name, "botaction"))
-	{
-		*isDev = 0;
 		return botAction;
-	}
 
 	if (!strcmp(*name, "botstop"))
-	{
-		*isDev = 0;
 		return botStop;
-	}
 
 	if (!strcmp(*name, "botweapon"))
-	{
-		*isDev = 0;
 		return botWeapon;
-	}
 
 	if (!strcmp(*name, "botmovement"))
-	{
-		*isDev = 0;
 		return botMovement;
-	}
 
 	if (!strcmp(*name, "isbot"))
-	{
-		*isDev = 0;
 		return isBot;
-	}
+
+	if (!strcmp(*name, "removetestclient"))
+		return RemoveTestclient;
 
 	return nullptr;
 }
 
-__declspec(naked) void GetFunctionStub2()
-{
-	__asm
-	{
-		test eax, eax
-		jnz returnSafe
-
-		sub esp, 8h
-		push[esp + 10h]
-		call GetFunction
-		add esp, 0Ch
-
-	returnSafe:
-		retn
-	}
-}
+static DWORD sub_4EEEC0 = 0x4EEEC0;
+static DWORD sub_5261C0 = 0x5261C0;
+static DWORD sub_5350B0 = 0x5350B0;
+static DWORD sub_4F90C0 = 0x4F90C0;
+static DWORD sub_50E020 = 0x50E020;
+static DWORD sub_675830 = 0x675830;
+static DWORD sub_5232D0 = 0x5232D0;
 
 __declspec(naked) void GetFunctionStub()
 {
 	__asm
 	{
-		test eax, eax
-		jnz returnSafe
+		push    esi
+		mov     dword ptr[edi], 0
+		call    sub_4EEEC0
+		add     esp, 4
+		test    eax, eax
+		jnz     short locret_5233AE
+		push    esi
+		call    sub_5261C0
+		add     esp, 4
+		test    eax, eax
+		jnz     short locret_5233AE
+		push    esi
+		call    sub_5350B0
+		add     esp, 4
+		test    eax, eax
+		jnz     short locret_5233AE
+		push    esi
+		call    sub_4F90C0
+		add     esp, 4
+		test    eax, eax
+		jnz     short locret_5233AE
+		push    esi
+		call    sub_50E020
+		add     esp, 4
+		test    eax, eax
+		jnz     short locret_5233AE
+		push    esi
+		call    sub_675830
+		add     esp, 4
+		test    eax, eax
+		jnz     short locret_5233AE
+		push    edi
+		push    esi
+		call    sub_5232D0
+		add     esp, 8
+		test    eax, eax
+		jnz     short locret_5233AE
+		push    esi
+		call    GetFunction
+		add     esp, 4
 
-		sub esp, 8h
-		push[esp + 10h]
-		call GetFunction
-		add esp, 0Ch
-
-	returnSafe:
-		pop     edi
-		pop     esi
-		pop     ebp
-		xor eax, eax
-		pop     ebx
+	locret_5233AE:
 		retn
 	}
 }
@@ -437,13 +467,10 @@ void PatchT4MP()
 	Detours::X86::DetourFunction((PBYTE)0x57F6C4, (PBYTE)&SV_UpdateBotsStub, Detours::X86Option::USE_CALL);
 
 	// Patch the Scr_GetMethod so we can use custom GSC calls
-	Detours::X86::DetourFunction((PBYTE)0x52329F, (PBYTE)&GetFunctionStub, Detours::X86Option::USE_JUMP);
-	Detours::X86::DetourFunction((PBYTE)0x46B46F, (PBYTE)&GetFunctionStub, Detours::X86Option::USE_JUMP);
-	Detours::X86::DetourFunction((PBYTE)0x46C97F, (PBYTE)&GetFunctionStub, Detours::X86Option::USE_JUMP);
-	Detours::X86::DetourFunction((PBYTE)0x5233AE, (PBYTE)&GetFunctionStub2, Detours::X86Option::USE_JUMP);
+	Detours::X86::DetourFunction((PBYTE)0x640059, (PBYTE)&GetFunctionStub, Detours::X86Option::USE_CALL);
 
 	// Patch incoming connectionless messages
-	Detours::X86::DetourFunction((PBYTE)0x57EB55, (PBYTE)&SV_ConnectionlessPacketStub, Detours::X86Option::USE_CALL);
+	//Detours::X86::DetourFunction((PBYTE)0x57EB55, (PBYTE)&SV_ConnectionlessPacketStub, Detours::X86Option::USE_CALL);
 
 	// Allow Remote desktop
 	Detours::X86::DetourFunction((PBYTE)0x5D06F2, (PBYTE)0x5D0721, Detours::X86Option::USE_JUMP);
