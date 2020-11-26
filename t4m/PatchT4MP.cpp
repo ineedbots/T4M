@@ -27,10 +27,9 @@ int Scr_GetInt(int slot)
 	DWORD _Scr_GetInt = 0x656130;
 	__asm
 	{
-		push slot
-		mov eax, slot
+		mov ecx, slot
+		mov eax, 0
 		call _Scr_GetInt
-		add esp, 4
 		mov result, eax
 	}
 
@@ -46,7 +45,7 @@ char* Scr_GetString(int slot)
 	__asm
 	{
 		push slot
-		mov eax, slot
+		mov eax, 0
 		call _Scr_GetString
 		add esp, 4
 		mov result, eax
@@ -298,20 +297,13 @@ void isBot(unsigned int gNum)
 	Scr_AddBool(!(&sv_clients[gNum])->isNotBot);
 }
 
-void botMoveForward(unsigned int gNum)
+void botMovement(unsigned int gNum)
 {
 	if (gNum >= MAX_G_BOTAI_ENTRIES)
 		return;
 
 	g_botai[gNum].forward = Scr_GetInt(0);
-}
-
-void botMoveRight(unsigned int gNum)
-{
-	if (gNum >= MAX_G_BOTAI_ENTRIES)
-		return;
-
-	g_botai[gNum].right = Scr_GetInt(0);
+	g_botai[gNum].right = Scr_GetInt(1);
 }
 
 void botWeapon(unsigned int gNum)
@@ -374,16 +366,10 @@ void* GetFunction(void* caller, const char** name, int* isDev)
 		return botWeapon;
 	}
 
-	if (!strcmp(*name, "botmoveforward"))
+	if (!strcmp(*name, "botmovement"))
 	{
 		*isDev = 0;
-		return botMoveForward;
-	}
-
-	if (!strcmp(*name, "botmoveright"))
-	{
-		*isDev = 0;
-		return botMoveRight;
+		return botMovement;
 	}
 
 	if (!strcmp(*name, "isbot"))
