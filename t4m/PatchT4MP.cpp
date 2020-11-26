@@ -68,9 +68,10 @@ int BG_GetWeaponIndexForName(const char *weaponName)
 	DWORD _BG_GetWeaponIndexForName = 0x41FFB0;
 	__asm
 	{
+		push 0x4FB490
 		push weaponName
 		call _BG_GetWeaponIndexForName
-		add esp, 4
+		add esp, 8
 		mov weapIndex, eax
 	}
 
@@ -184,7 +185,7 @@ void Scr_AddBool(int send)
 	__asm
 	{
 		push send
-		mov eax, send
+		mov eax, 0
 		call _Scr_AddBool
 		add esp, 4
 	}
