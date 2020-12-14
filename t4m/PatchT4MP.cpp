@@ -451,6 +451,21 @@ __declspec(naked) void GetFunctionStub()
 	}
 }
 
+static const char* botNames[] = {
+	"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", 
+	"n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z" 
+};
+
+int BuildBotConnectStr(char* Buffer, const char *connectStr, int num, int protcol, int port)
+{
+	int botNameIndex = (num - 1) % (sizeof(botNames) / sizeof(char*));
+
+	return sprintf(Buffer, connectStr, botNames[botNameIndex], protcol, port);
+}
+
+static char* botConnectStr = "connect \"\\cg_predictItems\\1\\cl_punkbuster\\0\\cl_anonymous\\0\\color\\4\\head\\default\\model\\multi\\snaps\\20\\"
+    "rate\\5000\\name\\%s\\protocol\\%d\\qport\\%d\"";
+
 void PatchT4MP()
 {
 	// init the bot commands
@@ -474,4 +489,10 @@ void PatchT4MP()
 
 	// Allow Remote desktop
 	Detours::X86::DetourFunction((PBYTE)0x5D06F2, (PBYTE)0x5D0721, Detours::X86Option::USE_JUMP);
+
+	// Use our connect string
+	*(char **)0x579458 = botConnectStr;
+
+	// intersept connect string sprintf
+	Detours::X86::DetourFunction((PBYTE)0x57945D, (PBYTE)&BuildBotConnectStr, Detours::X86Option::USE_CALL);
 }
