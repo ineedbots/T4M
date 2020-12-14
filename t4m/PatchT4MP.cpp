@@ -86,7 +86,9 @@ typedef struct client_s {
 	int outgoingSequence; // 16 - 20
 	char pad3[12]; // 20 - 32
 	int isNotBot; // 32 - 36
-	char pad4[762004]; // 36 - 762040
+	char pad4[610056]; // 36 - 610092
+	int ping; // 610092 - 610094
+	char pad5[151942]; // 610094 - 762040
 } client_t;
 
 typedef struct usercmd_s {
@@ -139,6 +141,8 @@ typedef struct BotMovementInfo_t
 	uint8_t right;
 	/* Weapon */
 	uint16_t weapon;
+
+	int ping;
 } BotMovementInfo_t;
 
 static BotMovementInfo_t g_botai[MAX_G_BOTAI_ENTRIES];
@@ -270,6 +274,7 @@ void SV_UpdateBotsStub()
 		usercmd.buttons = g_botai[i].buttons;
 
 		cl->deltaMessage = cl->outgoingSequence - 1;
+		cl->ping = g_botai[i].ping;
 
 		// call SV_ClientThink
 		void* a = (void*)cl;
@@ -319,6 +324,14 @@ void botMovement(unsigned int gNum)
 
 	g_botai[gNum].forward = Scr_GetInt(0);
 	g_botai[gNum].right = Scr_GetInt(1);
+}
+
+void setPing(unsigned int gNum)
+{
+	if (gNum >= MAX_G_BOTAI_ENTRIES)
+		return;
+
+	g_botai[gNum].ping = Scr_GetInt(0);
 }
 
 void botWeapon(unsigned int gNum)
@@ -389,6 +402,9 @@ void* __cdecl GetFunction(const char** name)
 
 	if (!strcmp(*name, "removetestclient"))
 		return RemoveTestclient;
+
+	if (!strcmp(*name, "setping"))
+		return setPing;
 
 	return nullptr;
 }
