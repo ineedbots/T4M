@@ -228,6 +228,19 @@ void Scr_AddBool(int send)
 	}
 }
 
+void Scr_AddString(char* str)
+{
+	DWORD _Scr_AddString = 0x656BD0;
+
+	__asm
+	{
+		push str
+		mov eax, 0
+		call _Scr_AddString
+		add esp, 4
+	}
+}
+
 void SV_ConnectionlessPacket(msg_t* msg, netadr_t where)
 {
 	DWORD _SV_ConnectionlessPacket = 0x57E320;
@@ -413,6 +426,24 @@ void botAction(unsigned int gNum)
 	}
 }
 
+void fileRead(unsigned int gNum)
+{
+	char* file = Scr_GetString(0);
+
+	if (!file)
+		return;
+
+	char* buf;
+	int size = FS_ReadFile(file, &buf);
+
+	if (size < 0)
+		return;
+
+	Scr_AddString(buf);
+
+	FS_FreeFile(buf);
+}
+
 void* __cdecl GetFunction(const char** name)
 {
 	if (!name)
@@ -438,6 +469,9 @@ void* __cdecl GetFunction(const char** name)
 
 	if (!strcmp(*name, "setping"))
 		return setPing;
+
+	if (!strcmp(*name, "fileread"))
+		return fileRead;
 
 	return nullptr;
 }
