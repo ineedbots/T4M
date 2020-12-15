@@ -289,7 +289,7 @@ void SV_ClientThink(client_t* cl, usercmd_t* usercmd)
 	DWORD _SV_ClientThink = 0x578D80;
 
 	void* a = (void*)cl;
-	void* b = (void*)&usercmd;
+	void* b = (void*)usercmd;
 	__asm
 	{
 		mov ecx, b
@@ -475,60 +475,29 @@ void* __cdecl GetMethods(const char** name)
 	return nullptr;
 }
 
-static DWORD sub_4EEEC0 = 0x4EEEC0;
-static DWORD sub_5261C0 = 0x5261C0;
-static DWORD sub_5350B0 = 0x5350B0;
-static DWORD sub_4F90C0 = 0x4F90C0;
-static DWORD sub_50E020 = 0x50E020;
-static DWORD sub_675830 = 0x675830;
 static DWORD sub_5232D0 = 0x5232D0;
-
 __declspec(naked) void GetMethodsStub()
 {
 	__asm
 	{
-		push    esi
-		mov     dword ptr[edi], 0
-		call    sub_4EEEC0
-		add     esp, 4
-		test    eax, eax
-		jnz     short locret_5233AE
-		push    esi
-		call    sub_5261C0
-		add     esp, 4
-		test    eax, eax
-		jnz     short locret_5233AE
-		push    esi
-		call    sub_5350B0
-		add     esp, 4
-		test    eax, eax
-		jnz     short locret_5233AE
-		push    esi
-		call    sub_4F90C0
-		add     esp, 4
-		test    eax, eax
-		jnz     short locret_5233AE
-		push    esi
-		call    sub_50E020
-		add     esp, 4
-		test    eax, eax
-		jnz     short locret_5233AE
-		push    esi
-		call    sub_675830
-		add     esp, 4
-		test    eax, eax
-		jnz     short locret_5233AE
+		// original code
 		push    edi
 		push    esi
 		call    sub_5232D0
 		add     esp, 8
+
+		// test if the method is still null
 		test    eax, eax
-		jnz     short locret_5233AE
+		jnz     short returnSafe
+
+		// try our custom gsc methods
 		push    esi
 		call    GetMethods
 		add     esp, 4
 
-	locret_5233AE:
+		// return back
+	returnSafe:
+		push 5233AEh
 		retn
 	}
 }
@@ -607,11 +576,11 @@ void PatchT4MP()
 	Detours::X86::DetourFunction((PBYTE)0x57F6C4, (PBYTE)&SV_UpdateBotsStub, Detours::X86Option::USE_CALL);
 
 	// Patch the Scr_GetMethod so we can use custom GSC calls
-	Detours::X86::DetourFunction((PBYTE)0x640059, (PBYTE)&GetMethodsStub, Detours::X86Option::USE_CALL);
+	Detours::X86::DetourFunction((PBYTE)0x5233A4, (PBYTE)&GetMethodsStub, Detours::X86Option::USE_JUMP);
 	Detours::X86::DetourFunction((PBYTE)0x523259, (PBYTE)&GetFunctionStub, Detours::X86Option::USE_JUMP);
 
 	// Patch incoming connectionless messages
-	//Detours::X86::DetourFunction((PBYTE)0x57EB55, (PBYTE)&SV_ConnectionlessPacketStub, Detours::X86Option::USE_CALL);
+	Detours::X86::DetourFunction((PBYTE)0x57EB55, (PBYTE)&SV_ConnectionlessPacketStub, Detours::X86Option::USE_CALL);
 
 	// Allow Remote desktop
 	Detours::X86::DetourFunction((PBYTE)0x5D06F2, (PBYTE)0x5D0721, Detours::X86Option::USE_JUMP);
