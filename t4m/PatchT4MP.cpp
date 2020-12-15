@@ -182,6 +182,39 @@ static const BotAction_t BotActions[] =
 };
 
 
+void FS_FreeFile(char* buffer)
+{
+	*(DWORD*)0xF366844 -= 1;
+	DWORD Hunk_FreeTempMemory = 0x5BB0D0;
+	__asm
+	{
+		mov esi, buffer
+		call Hunk_FreeTempMemory
+	}
+}
+
+
+int FS_ReadFile(char* path, char* buffer)
+{
+	char* buff = nullptr;
+
+	DWORD _FS_ReadFile = 0x5B2940;
+	int result;
+	void* a = &buff;
+	__asm
+	{
+		push a
+		mov eax, path
+		call _FS_ReadFile
+		mov result, eax
+		add esp, 4
+	}
+
+	buffer = buff;
+	return result;
+}
+
+
 void Scr_AddBool(int send)
 {
 	DWORD _Scr_AddBool = 0x656A10;
