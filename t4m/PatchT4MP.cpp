@@ -20,64 +20,6 @@
 
 #define MAX_G_BOTAI_ENTRIES     64
 
-int Scr_GetInt(int slot)
-{
-	int result = 0;
-
-	DWORD _Scr_GetInt = 0x656130;
-	__asm
-	{
-		mov ecx, slot
-		mov eax, 0
-		call _Scr_GetInt
-		mov result, eax
-	}
-
-	return result;
-}
-
-char* Scr_GetString(int slot)
-{
-	unsigned int result = 0;
-	char* ret = 0;
-
-	DWORD _Scr_GetString = 0x656350;
-	__asm
-	{
-		push slot
-		mov eax, 0
-		call _Scr_GetString
-		add esp, 4
-		mov result, eax
-	}
-
-	if (result)
-	{
-		unsigned int heapScrPtr = *(unsigned int *)0xF66B3B8;
-
-		ret = (char*)(heapScrPtr + 12 * result + 4);
-	}
-
-	return ret;
-}
-
-int BG_GetWeaponIndexForName(const char *weaponName)
-{
-	int weapIndex = 0;
-
-	DWORD _BG_GetWeaponIndexForName = 0x41FFB0;
-	__asm
-	{
-		push 0x4FB490
-		push weaponName
-		call _BG_GetWeaponIndexForName
-		add esp, 8
-		mov weapIndex, eax
-	}
-
-	return weapIndex;
-}
-
 typedef struct client_s {
 	int state; // 0 - 4
 	char pad[4]; // 4 - 8
@@ -181,6 +123,63 @@ static const BotAction_t BotActions[] =
 	{ "9", 33554432 },
 };
 
+int Scr_GetInt(int slot)
+{
+	int result = 0;
+
+	DWORD _Scr_GetInt = 0x656130;
+	__asm
+	{
+		mov ecx, slot
+		mov eax, 0
+		call _Scr_GetInt
+		mov result, eax
+	}
+
+	return result;
+}
+
+char* Scr_GetString(int slot)
+{
+	unsigned int result = 0;
+	char* ret = 0;
+
+	DWORD _Scr_GetString = 0x656350;
+	__asm
+	{
+		push slot
+		mov eax, 0
+		call _Scr_GetString
+		add esp, 4
+		mov result, eax
+	}
+
+	if (result)
+	{
+		unsigned int heapScrPtr = *(unsigned int *)0xF66B3B8;
+
+		ret = (char*)(heapScrPtr + 12 * result + 4);
+	}
+
+	return ret;
+}
+
+int BG_GetWeaponIndexForName(const char *weaponName)
+{
+	int weapIndex = 0;
+
+	DWORD _BG_GetWeaponIndexForName = 0x41FFB0;
+	__asm
+	{
+		push 0x4FB490
+		push weaponName
+		call _BG_GetWeaponIndexForName
+		add esp, 8
+		mov weapIndex, eax
+	}
+
+	return weapIndex;
+}
 
 void FS_FreeFile(char* buffer)
 {
@@ -192,7 +191,6 @@ void FS_FreeFile(char* buffer)
 		call Hunk_FreeTempMemory
 	}
 }
-
 
 int FS_ReadFile(char* path, char** buffer)
 {
@@ -213,7 +211,6 @@ int FS_ReadFile(char* path, char** buffer)
 	*buffer = buff;
 	return result;
 }
-
 
 void Scr_AddBool(int send)
 {
@@ -287,11 +284,24 @@ int SV_DropClient(client_t* cl, char* reason)
 	return result;
 }
 
+void SV_ClientThink(client_t* cl, usercmd_t* usercmd)
+{
+	DWORD _SV_ClientThink = 0x578D80;
+
+	void* a = (void*)cl;
+	void* b = (void*)&usercmd;
+	__asm
+	{
+		mov ecx, b
+		mov eax, a
+		call _SV_ClientThink
+	}
+}
+
 void SV_UpdateBotsStub()
 {
 	client_t* sv_clients = (client_t*)0x28C7B10;
 	int sv_maxclients = *(int*)(*(int*)0x23C3AA8 + 16);
-	DWORD SV_ClientThink = 0x578D80;
 	unsigned int sv_servertime = *(int*)0x28C7B04;
 
 	for (int i = 0; i < sv_maxclients; i++)
@@ -322,15 +332,7 @@ void SV_UpdateBotsStub()
 		cl->deltaMessage = cl->outgoingSequence - 1;
 		cl->ping = g_botai[i].ping;
 
-		// call SV_ClientThink
-		void* a = (void*)cl;
-		void* b = (void*)&usercmd;
-		__asm
-		{
-			mov ecx, b
-			mov eax, a
-			call SV_ClientThink
-		}
+		SV_ClientThink(cl, &usercmd);
 	}
 }
 
@@ -444,14 +446,6 @@ void fileRead(unsigned int gNum)
 	FS_FreeFile(buf);
 }
 
-void* __cdecl GetFunctions(const char* name)
-{
-	if (!strcmp(name, "fileread"))
-		return fileRead;
-
-	return nullptr;
-}
-
 void* __cdecl GetMethods(const char** name)
 {
 	if (!name)
@@ -537,6 +531,14 @@ __declspec(naked) void GetMethodsStub()
 	locret_5233AE:
 		retn
 	}
+}
+
+void* __cdecl GetFunctions(const char* name)
+{
+	if (!strcmp(name, "fileread"))
+		return fileRead;
+
+	return nullptr;
 }
 
 __declspec(naked) void GetFunctionStub()
