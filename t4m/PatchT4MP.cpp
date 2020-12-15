@@ -545,16 +545,70 @@ __declspec(naked) void GetFunctionStub()
 	}
 }
 
-static const char* botNames[] = {
-	"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", 
-	"n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z" 
-};
+static std::vector<std::string> botNames;
+
+// https://stackoverflow.com/a/44495206
+std::vector<std::string> split(char *phrase, std::string delimiter)
+{
+    std::vector<std::string> list;
+    std::string s = std::string(phrase);
+    size_t pos = 0;
+    std::string token;
+    while ((pos = s.find(delimiter)) != std::string::npos)
+	{
+        token = s.substr(0, pos);
+        list.push_back(token);
+        s.erase(0, pos + delimiter.length());
+    }
+    list.push_back(s);
+    return list;
+}
+
+// iw4x-client
+void Replace(std::string &string, const std::string& find, const std::string& replace)
+{
+	size_t nPos = 0;
+
+	while ((nPos = string.find(find, nPos)) != std::string::npos)
+	{
+		string = string.replace(nPos, find.length(), replace);
+		nPos += replace.length();
+	}
+}
 
 int BuildBotConnectStr(char* Buffer, const char *connectStr, int num, int protcol, int port)
 {
-	int botNameIndex = (num - 1) % (sizeof(botNames) / sizeof(char*));
+	if (botNames.empty())
+	{
+		char* names;
+		int size = FS_ReadFile("bots.txt", &names);
 
-	return sprintf(Buffer, connectStr, botNames[botNameIndex], protcol, port);
+		if (size > 0)
+		{
+			std::vector<std::string> namesv = split(names, "\n");
+
+			for (auto name : namesv)
+			{
+				Replace(name, "\r", "");
+
+				if (!name.empty())
+				{
+					botNames.push_back(name);
+				}
+			}
+
+			FS_FreeFile(names);
+		}
+	}
+
+	char name[128];
+
+	if (botNames.empty())
+		sprintf(name, "bot%d", num - 1);
+	else
+		sprintf(name, "%s", botNames.at((num - 1) % botNames.size()).c_str());
+
+	return sprintf(Buffer, connectStr, name, protcol, port);
 }
 
 static char* botConnectStr = "connect \"\\cg_predictItems\\1\\cl_punkbuster\\0\\cl_anonymous\\0\\color\\4\\head\\default\\model\\multi\\snaps\\20\\"
