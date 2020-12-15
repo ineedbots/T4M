@@ -444,7 +444,15 @@ void fileRead(unsigned int gNum)
 	FS_FreeFile(buf);
 }
 
-void* __cdecl GetFunction(const char** name)
+void* __cdecl GetFunctions(const char* name)
+{
+	if (!strcmp(name, "fileread"))
+		return fileRead;
+
+	return nullptr;
+}
+
+void* __cdecl GetMethods(const char** name)
 {
 	if (!name)
 		return nullptr;
@@ -470,9 +478,6 @@ void* __cdecl GetFunction(const char** name)
 	if (!strcmp(*name, "setping"))
 		return setPing;
 
-	if (!strcmp(*name, "fileread"))
-		return fileRead;
-
 	return nullptr;
 }
 
@@ -484,7 +489,7 @@ static DWORD sub_50E020 = 0x50E020;
 static DWORD sub_675830 = 0x675830;
 static DWORD sub_5232D0 = 0x5232D0;
 
-__declspec(naked) void GetFunctionStub()
+__declspec(naked) void GetMethodsStub()
 {
 	__asm
 	{
@@ -526,10 +531,45 @@ __declspec(naked) void GetFunctionStub()
 		test    eax, eax
 		jnz     short locret_5233AE
 		push    esi
-		call    GetFunction
+		call    GetMethods
 		add     esp, 4
 
 	locret_5233AE:
+		retn
+	}
+}
+
+__declspec(naked) void GetFunctionStub()
+{
+	__asm
+	{
+		// original code we patched over
+		push    esi
+		push    edi
+		xor edi, edi
+		xor esi, esi
+		nop
+
+		// call our custom gsc
+		push ebx
+		call GetFunctions
+		add     esp, 4
+
+		// test if we need to hook our custom call
+		test    eax, eax
+		jz returnSafe
+
+		// return from the function with the answer
+		pop     edi
+		pop     esi
+		pop     ebp
+		pop     ebx
+		retn
+
+
+	returnSafe:
+		// return to normal execution
+		push 523260h
 		retn
 	}
 }
@@ -565,7 +605,8 @@ void PatchT4MP()
 	Detours::X86::DetourFunction((PBYTE)0x57F6C4, (PBYTE)&SV_UpdateBotsStub, Detours::X86Option::USE_CALL);
 
 	// Patch the Scr_GetMethod so we can use custom GSC calls
-	Detours::X86::DetourFunction((PBYTE)0x640059, (PBYTE)&GetFunctionStub, Detours::X86Option::USE_CALL);
+	Detours::X86::DetourFunction((PBYTE)0x640059, (PBYTE)&GetMethodsStub, Detours::X86Option::USE_CALL);
+	Detours::X86::DetourFunction((PBYTE)0x523259, (PBYTE)&GetFunctionStub, Detours::X86Option::USE_JUMP);
 
 	// Patch incoming connectionless messages
 	//Detours::X86::DetourFunction((PBYTE)0x57EB55, (PBYTE)&SV_ConnectionlessPacketStub, Detours::X86Option::USE_CALL);
