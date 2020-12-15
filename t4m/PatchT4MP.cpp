@@ -194,7 +194,7 @@ void FS_FreeFile(char* buffer)
 }
 
 
-int FS_ReadFile(char* path, char* buffer)
+int FS_ReadFile(char* path, char** buffer)
 {
 	char* buff = nullptr;
 
@@ -210,7 +210,7 @@ int FS_ReadFile(char* path, char* buffer)
 		add esp, 4
 	}
 
-	buffer = buff;
+	*buffer = buff;
 	return result;
 }
 
