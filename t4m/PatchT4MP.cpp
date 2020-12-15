@@ -428,7 +428,7 @@ void botAction(unsigned int gNum)
 	}
 }
 
-void fileRead(unsigned int gNum)
+void fileRead()
 {
 	char* file = Scr_GetString(0);
 
