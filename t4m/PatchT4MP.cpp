@@ -450,13 +450,20 @@ bool HTTPGet(const char* url, std::string &result)
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _CURLWrite);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
-		res = curl_easy_perform(curl);
-		curl_easy_cleanup(curl);
+		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L); // follow redirects
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT , 5L); // timeout in 5 seconds
+		curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT , 5L);
 
-		if (CURLE_OK == res)
+		res = curl_easy_perform(curl);
+		if (res == CURLE_OK)
 		{
-			ret = true;
+			long response_code;
+			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+
+			ret = (response_code >= 200 && response_code < 300);
 		}
+
+		curl_easy_cleanup(curl);
 	}
 
 	curl_global_cleanup();
