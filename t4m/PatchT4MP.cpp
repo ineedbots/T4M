@@ -225,13 +225,13 @@ void Scr_AddBool(int send)
 	}
 }
 
-void Scr_AddString(char* str)
+void Scr_AddString(char* stri)
 {
 	DWORD _Scr_AddString = 0x656BD0;
 
 	__asm
 	{
-		push str
+		push stri
 		mov eax, 0
 		call _Scr_AddString
 		add esp, 4
@@ -342,7 +342,7 @@ void NOOP()
 
 void isBot(unsigned int gNum)
 {
-	int sv_maxclients = *(int*)(*(int*)0x23C3AA8 + 16);
+	unsigned int sv_maxclients = *(int*)(*(int*)0x23C3AA8 + 16);
 
 	if (gNum >= sv_maxclients)
 		return;
@@ -354,7 +354,7 @@ void isBot(unsigned int gNum)
 
 void RemoveTestclient(unsigned int gNum)
 {
-	int sv_maxclients = *(int*)(*(int*)0x23C3AA8 + 16);
+	unsigned int sv_maxclients = *(int*)(*(int*)0x23C3AA8 + 16);
 
 	if (gNum >= sv_maxclients)
 		return;
@@ -428,6 +428,41 @@ void botAction(unsigned int gNum)
 	}
 }
 
+static size_t _CURLWrite(void* buffer, size_t size, size_t nmemb, void* param)
+{
+	std::string& text = *static_cast<std::string*>(param);
+	size_t totalsize = size * nmemb;
+	text.append(static_cast<char*>(buffer), totalsize);
+	return totalsize;
+}
+
+bool HTTPGet(const char* url, std::string &result)
+{
+	bool ret = false;
+	CURL* curl;
+	CURLcode res;
+
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+	curl = curl_easy_init();
+
+	if (curl)
+	{
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _CURLWrite);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+
+		if (CURLE_OK == res)
+		{
+			ret = true;
+		}
+	}
+
+	curl_global_cleanup();
+	return ret;
+}
+
 void fileRead()
 {
 	char* file = Scr_GetString(0);
@@ -446,9 +481,34 @@ void fileRead()
 	FS_FreeFile(buf);
 }
 
+void scriptHTTPGet()
+{
+	char* url = Scr_GetString(0);
+
+	if (!url)
+		return;
+
+	std::string res;
+
+	if (!HTTPGet(url, res))
+		return;
+
+	Scr_AddString((char *)res.c_str());
+}
+
+void debugBox()
+{
+	char* str = Scr_GetString(0);
+
+	if (!str)
+		return;
+
+	MessageBoxA(nullptr, str, "DEBUG", 0);
+}
+
 void* __cdecl GetMethods(const char** name)
 {
-	if (!name)
+	if (!name || !*name)
 		return nullptr;
 
 	if (!strcmp(*name, "botaction"))
@@ -504,8 +564,17 @@ __declspec(naked) void GetMethodsStub()
 
 void* __cdecl GetFunctions(const char* name)
 {
+	if (!name)
+		return nullptr;
+
 	if (!strcmp(name, "fileread"))
 		return fileRead;
+
+	if (!strcmp(name, "httpget"))
+		return scriptHTTPGet;
+
+	if (!strcmp(name, "debugbox"))
+		return debugBox;
 
 	return nullptr;
 }
@@ -614,38 +683,6 @@ int BuildBotConnectStr(char* Buffer, const char *connectStr, int num, int protco
 static char* botConnectStr = "connect \"\\cg_predictItems\\1\\cl_punkbuster\\0\\cl_anonymous\\0\\color\\4\\head\\default\\model\\multi\\snaps\\20\\"
     "rate\\5000\\name\\%s\\protocol\\%d\\qport\\%d\"";
 
-static size_t my_write(void* buffer, size_t size, size_t nmemb, void* param)
-{
-	std::string& text = *static_cast<std::string*>(param);
-	size_t totalsize = size * nmemb;
-	text.append(static_cast<char*>(buffer), totalsize);
-	return totalsize;
-}
-
-void curltest()
-{
-	std::string result;
-	CURL* curl;
-	CURLcode res;
-	curl_global_init(CURL_GLOBAL_DEFAULT);
-	curl = curl_easy_init();
-	if (curl)
-	{
-		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/XLabsProject/iw4x-client/develop/.gitignore");
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, my_write);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
-		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-		res = curl_easy_perform(curl);
-		curl_easy_cleanup(curl);
-		if (CURLE_OK != res)
-		{
-			MessageBoxA(nullptr, "curl error", "DEBUG", 0);
-		}
-	}
-	curl_global_cleanup();
-	MessageBoxA(nullptr, result.c_str(), "DEBUG", 0);
-}
-
 void PatchT4MP()
 {
 	// init the bot commands
@@ -676,6 +713,4 @@ void PatchT4MP()
 
 	// intersept connect string sprintf
 	Detours::X86::DetourFunction((PBYTE)0x57945D, (PBYTE)&BuildBotConnectStr, Detours::X86Option::USE_CALL);
-
-	curltest();
 }

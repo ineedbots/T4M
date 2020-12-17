@@ -22,7 +22,7 @@ extern "C"
 dvar_t* Dvar_RegisterBool(bool value, const char *dvarName, int flags, const char *description)
 {
 	DWORD func = 0x5EEE20;
-	dvar_t* ret;
+	dvar_t* _ret;
 	__asm
 	{
 		push description
@@ -31,9 +31,9 @@ dvar_t* Dvar_RegisterBool(bool value, const char *dvarName, int flags, const cha
 		mov edi, dvarName
 		call func
 		add esp, 8
-		mov ret, eax
+		mov _ret, eax
 	}
-	return ret;
+	return _ret;
 }
 
 // fucking __usercall

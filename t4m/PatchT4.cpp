@@ -100,6 +100,6 @@ void loadGameOverlay()
 	}
 	catch (int e)
 	{
-		//Com_Printf(0, "Failed to inject Steam's gameoverlay: %d", e);
+		Com_Printf(0, "Failed to inject Steam's gameoverlay: %d", e);
 	}
 }
