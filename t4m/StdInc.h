@@ -10,7 +10,9 @@
 #include <map>
 
 #include <zlib.h>
-#pragma comment(lib, "zlib.lib")
+
+#define CURL_STATICLIB
+#include <curl.h>
 
 #include "resource.h"
 

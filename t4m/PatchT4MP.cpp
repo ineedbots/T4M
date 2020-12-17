@@ -614,6 +614,38 @@ int BuildBotConnectStr(char* Buffer, const char *connectStr, int num, int protco
 static char* botConnectStr = "connect \"\\cg_predictItems\\1\\cl_punkbuster\\0\\cl_anonymous\\0\\color\\4\\head\\default\\model\\multi\\snaps\\20\\"
     "rate\\5000\\name\\%s\\protocol\\%d\\qport\\%d\"";
 
+static size_t my_write(void* buffer, size_t size, size_t nmemb, void* param)
+{
+	std::string& text = *static_cast<std::string*>(param);
+	size_t totalsize = size * nmemb;
+	text.append(static_cast<char*>(buffer), totalsize);
+	return totalsize;
+}
+
+void curltest()
+{
+	std::string result;
+	CURL* curl;
+	CURLcode res;
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+	curl = curl_easy_init();
+	if (curl)
+	{
+		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/XLabsProject/iw4x-client/develop/.gitignore");
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, my_write);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+		if (CURLE_OK != res)
+		{
+			MessageBoxA(nullptr, "curl error", "DEBUG", 0);
+		}
+	}
+	curl_global_cleanup();
+	MessageBoxA(nullptr, result.c_str(), "DEBUG", 0);
+}
+
 void PatchT4MP()
 {
 	// init the bot commands
@@ -644,4 +676,6 @@ void PatchT4MP()
 
 	// intersept connect string sprintf
 	Detours::X86::DetourFunction((PBYTE)0x57945D, (PBYTE)&BuildBotConnectStr, Detours::X86Option::USE_CALL);
+
+	curltest();
 }
