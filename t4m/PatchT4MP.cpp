@@ -212,6 +212,69 @@ int FS_ReadFile(char* path, char** buffer)
 	return result;
 }
 
+int FS_FOpenFileWrite(char *path)
+{
+	DWORD _FS_FOpenFileWrite = 0x5B1B60;
+	int result;
+
+	__asm
+	{
+		push 0
+		push path
+		call _FS_FOpenFileWrite
+		add     esp, 8
+		mov result, eax
+	}
+
+	return result;
+}
+
+int FS_FOpenFileAppend(char *path)
+{
+	DWORD _FS_FOpenFileAppend = 0x5B1C50;
+	int result;
+
+	__asm
+	{
+		push 0
+		push path
+		call _FS_FOpenFileAppend
+		add     esp, 8
+		mov result, eax
+	}
+
+	return result;
+}
+
+int FS_Write(char *buff, size_t buffSize, int fd)
+{
+	int result;
+	DWORD _FS_Write = 0x5B2860;
+
+	__asm
+	{
+		push fd
+		push buffSize
+		mov ecx, buff
+		call _FS_Write
+		add esp, 8
+		mov result, eax
+	}
+
+	return result;
+}
+
+void FS_FCloseFile(int fd)
+{
+	DWORD _FS_FCloseFile = 0x5B19D0;
+
+	__asm
+	{
+		mov eax, fd
+		call _FS_FCloseFile
+	}
+}
+
 void Scr_AddBool(int send)
 {
 	DWORD _Scr_AddBool = 0x656A10;
@@ -488,6 +551,40 @@ void fileRead()
 	FS_FreeFile(buf);
 }
 
+void fileWrite()
+{
+	char* file = Scr_GetString(0);
+	if (!file)
+		return;
+
+	char* data = Scr_GetString(1);
+	if (!data)
+		return;
+
+	size_t dataSize = strlen(data);
+	int mode = 0; // write
+	char *modeStr = Scr_GetString(2);
+
+	if (modeStr && !strcmp(modeStr, "append"))
+		mode = 1; // append
+
+	int fd;
+
+	if (!mode)
+		fd = FS_FOpenFileWrite(file);
+	else
+		fd = FS_FOpenFileAppend(file);
+
+	if (fd < 1)
+		return;
+
+	FS_Write(data, dataSize, fd);
+
+	FS_FCloseFile(fd);
+
+	Scr_AddBool(true);
+}
+
 void scriptHTTPGet()
 {
 	char* url = Scr_GetString(0);
@@ -576,6 +673,9 @@ void* __cdecl GetFunctions(const char* name)
 
 	if (!strcmp(name, "fileread"))
 		return fileRead;
+
+	if (!strcmp(name, "filewrite"))
+		return fileWrite;
 
 	if (!strcmp(name, "httpget"))
 		return scriptHTTPGet;
