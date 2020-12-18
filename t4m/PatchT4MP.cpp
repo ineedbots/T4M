@@ -1,4 +1,5 @@
-#include "StdInc.h"
+#include "Hooking.h"
+#include "Utils.h"
 
 #define KEY_MASK_FIRE           1
 #define KEY_MASK_SPRINT         2
@@ -610,6 +611,30 @@ void debugBox()
 	MessageBoxA(nullptr, str, "DEBUG", 0);
 }
 
+void Com_PrintMessageMP(int channel, char* pntstr, int err)
+{
+	DWORD _Com_PrintMessage = 0x5622B0;
+
+	__asm
+	{
+		push err
+		push pntstr
+		push channel
+		call _Com_PrintMessage
+		add esp, 0Ch
+	}
+}
+
+void printConsole()
+{
+	char* str = Scr_GetString(0);
+
+	if (!str)
+		return;
+
+	Com_PrintMessageMP(0, str, 0);
+}
+
 void* __cdecl GetMethods(const char** name)
 {
 	if (!name || !*name)
@@ -682,6 +707,9 @@ void* __cdecl GetFunctions(const char* name)
 
 	if (!strcmp(name, "debugbox"))
 		return debugBox;
+
+	if (!strcmp(name, "printconsole"))
+		return printConsole;
 
 	return nullptr;
 }
@@ -777,10 +805,13 @@ int BuildBotConnectStr(char* Buffer, const char *connectStr, int num, int protco
 		}
 	}
 
+	if (num < 0)
+		num = 0;
+
 	char name[128];
 
 	if (botNames.empty())
-		sprintf(name, "bot%d", num);
+		sprintf(name, "bot%d", num - 1);
 	else
 		sprintf(name, "%s", botNames.at((num - 1) % botNames.size()).c_str());
 
