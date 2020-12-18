@@ -24,11 +24,10 @@ void PatchT4MP();
 
 void Sys_RunInit()
 {
-	// 83EC8B55 is the same for MP!
-	//if (*(DWORD*)0x401000 == 0x9EF490B8 || *(DWORD*)0x401000 == 0x83EC8B55) // SP!
-	//	PatchT4();
-	//else
-	PatchT4MP();
+	if (*(DWORD*)0x881CAC != 0x62616E55) // SP!
+		PatchT4();
+	else
+		PatchT4MP();
 }
 
 void PatchT4()
@@ -55,6 +54,10 @@ void PatchT4_PreLoad()
 
 void PatchT4_SteamDRM()
 {
+	// check if steam exe
+	if (*(DWORD*)0x401000 != 0x9EF490B8)
+		return;
+
 	// Replace encrypted .text segment
 	DWORD size = 0x3EA000;
 	std::string data = GetBinaryResource(IDB_TEXT);

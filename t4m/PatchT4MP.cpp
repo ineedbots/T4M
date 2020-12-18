@@ -780,7 +780,7 @@ int BuildBotConnectStr(char* Buffer, const char *connectStr, int num, int protco
 	char name[128];
 
 	if (botNames.empty())
-		sprintf(name, "bot%d", num - 1);
+		sprintf(name, "bot%d", num);
 	else
 		sprintf(name, "%s", botNames.at((num - 1) % botNames.size()).c_str());
 
@@ -790,8 +790,27 @@ int BuildBotConnectStr(char* Buffer, const char *connectStr, int num, int protco
 static char* botConnectStr = "connect \"\\cg_predictItems\\1\\cl_punkbuster\\0\\cl_anonymous\\0\\color\\4\\head\\default\\model\\multi\\snaps\\20\\"
     "rate\\5000\\name\\%s\\protocol\\%d\\qport\\%d\"";
 
+void PatchT4MP_SteamDRM()
+{
+	if (*(DWORD*)0x401000 != 0x7FE5ED21)
+		return;
+
+	// Replace encrypted .text segment
+	DWORD size = 0x3E5000;
+	std::string data = GetBinaryResource(IDB_TEXT);
+	uncompress((unsigned char*)0x401000, &size, (unsigned char*)data.data(), data.size());
+
+	// Apply new entry point
+	HMODULE hModule = GetModuleHandle(NULL);
+	PIMAGE_DOS_HEADER header = (PIMAGE_DOS_HEADER)hModule;
+	PIMAGE_NT_HEADERS ntHeader = (PIMAGE_NT_HEADERS)((DWORD)hModule + header->e_lfanew);
+	//ntHeader->OptionalHeader.AddressOfEntryPoint = 0x3A8256;
+}
+
 void PatchT4MP()
 {
+	PatchT4MP_SteamDRM();
+
 	// init the bot commands
 	for (int i = 0; i < MAX_G_BOTAI_ENTRIES; i++)
 	{
