@@ -811,9 +811,9 @@ int BuildBotConnectStr(char* Buffer, const char *connectStr, int num, int protco
 	char name[128];
 
 	if (botNames.empty())
-		sprintf(name, "bot%d", num - 1);
+		sprintf(name, "bot%d", num);
 	else
-		sprintf(name, "%s", botNames.at((num - 1) % botNames.size()).c_str());
+		sprintf(name, "%s", botNames.at(num % botNames.size()).c_str());
 
 	return sprintf(Buffer, connectStr, name, protcol, port);
 }
@@ -835,7 +835,7 @@ void PatchT4MP_SteamDRM()
 	HMODULE hModule = GetModuleHandle(NULL);
 	PIMAGE_DOS_HEADER header = (PIMAGE_DOS_HEADER)hModule;
 	PIMAGE_NT_HEADERS ntHeader = (PIMAGE_NT_HEADERS)((DWORD)hModule + header->e_lfanew);
-	//ntHeader->OptionalHeader.AddressOfEntryPoint = 0x3A8256;
+	ntHeader->OptionalHeader.AddressOfEntryPoint = 0x3A8256;
 }
 
 void PatchT4MP()
