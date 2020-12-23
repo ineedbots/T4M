@@ -870,4 +870,8 @@ void PatchT4MP()
 
 	// intersept connect string sprintf
 	Detours::X86::DetourFunction((PBYTE)0x57945D, (PBYTE)&BuildBotConnectStr, Detours::X86Option::USE_CALL);
+
+
+	// allow changing g_antilag
+	*(BYTE*)0x4FDA31 = 0;
 }
