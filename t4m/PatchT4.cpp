@@ -21,6 +21,7 @@ void PatchT4_PreLoad();
 void PatchT4_SteamDRM();
 void PatchT4_FileDebug();
 void PatchT4MP();
+void PatchT4Script();
 
 void Sys_RunInit()
 {
@@ -40,6 +41,7 @@ void PatchT4()
 	PatchT4_NoBorder();
 	PatchT4_PreLoad();
 	//PatchT4_FileDebug();
+	PatchT4Script();
 
 	// Check if game got started using steam
 	if (!GetModuleHandle("gameoverlayrenderer.dll"))
