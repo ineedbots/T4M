@@ -30,7 +30,7 @@
 #define DATE __DATE__
 #define TIME __TIME__
 #define CONSOLEVERSION_STR "T4M r"COMMIT_STR"> "
-#define VERSION_STR "T4-SP (r"COMMIT_STR") (built " DATE " " TIME " by " BUILDHOST")"
+#define VERSION_STR "T4M (r"COMMIT_STR") (built " DATE " " TIME " by " BUILDHOST")"
 #define BUILDLOG_STR "Build " VERSION_STR "\nlogfile created!\n"
 #define SHORTVERSION_STR "2.0."COMMIT_STR
 #define LONGVERSION_STR SHORTVERSION_STR " CL " DATE " " TIME

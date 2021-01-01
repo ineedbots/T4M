@@ -103,8 +103,8 @@ void loadGameOverlay()
 			}
 		}
 	}
-	catch (int e)
+	catch (int)
 	{
-		Com_Printf(0, "Failed to inject Steam's gameoverlay: %d", e);
+		//Com_Printf(0, "Failed to inject Steam's gameoverlay: %d", e);
 	}
 }

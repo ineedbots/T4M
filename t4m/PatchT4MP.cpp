@@ -1,5 +1,4 @@
-#include "Hooking.h"
-#include "Utils.h"
+#include "StdInc.h"
 
 #define KEY_MASK_FIRE           1
 #define KEY_MASK_SPRINT         2
@@ -838,9 +837,16 @@ void PatchT4MP_SteamDRM()
 	ntHeader->OptionalHeader.AddressOfEntryPoint = 0x3A8256;
 }
 
+const char* SetConsoleVersion();
+const char* SetShortVersion();
+void loadGameOverlay();
+
 void PatchT4MP()
 {
 	PatchT4MP_SteamDRM();
+
+	if (!GetModuleHandle("gameoverlayrenderer.dll"))
+		loadGameOverlay();
 
 	// init the bot commands
 	for (int i = 0; i < MAX_G_BOTAI_ENTRIES; i++)
@@ -874,4 +880,14 @@ void PatchT4MP()
 
 	// allow changing g_antilag
 	*(BYTE*)0x4FDA31 = 0;
+
+
+	nop(0x5CF675, 5); // remove optimal settings popup
+	*(BYTE*)0x5D03E6 = (BYTE)0xEB; // skip safe mode check
+
+	PatchMemory(0x856380, (PBYTE)CONSOLEVERSION_STR, 14);	// change the console input version
+
+	Detours::X86::DetourFunction((PBYTE)0x592B11, (PBYTE)&SetShortVersion, Detours::X86Option::USE_CALL); // change version number bottom right of main
+	Detours::X86::DetourFunction((PBYTE)0x48C532, (PBYTE)&SetConsoleVersion, Detours::X86Option::USE_CALL); // change the version info of console window
+	Detours::X86::DetourFunction((PBYTE)0x5658ED, (PBYTE)&SetConsoleVersion, Detours::X86Option::USE_CALL); // change the version info of version 
 }

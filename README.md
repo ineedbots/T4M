@@ -1,10 +1,11 @@
 # T4M
 
 T4M loads into World at War through DirectX `d3d9.dll` and performs enhancements to the game.
-The mod works for valid versions of Worl at War on Steam or CD versions with a LanFixed .exe.
+The mod works for valid versions of World at War on Steam or CD versions with a LanFixed .exe.
 Modders can view the full release of T4M [here](https://www.ugx-mods.com/forum/index.php?topic=8092.0) on UGX-mods.
 
-> CD versions of World at War require the [LanFixed exe](http://bit.ly/1nqdKEF)
+> CD versions of World at War SP require the [LanFixed exe](http://bit.ly/1nqdKEF)
+> Steam and CD versions of World at War MP require the [LanFixed exe](https://bit.ly/3803IUC)
 
 ## Features
 - Increased asset limits for T5 standard or higher
@@ -33,7 +34,7 @@ Modders can view the full release of T4M [here](https://www.ugx-mods.com/forum/i
 
 ## Installation
 Installing the T4M mod is extremely simple:
-> Drag the (DLL)[https://www.mediafire.com/download/9p1zcena5seqfzp/T4M_r45_%5BRelease%5D.rar] from the RAR into World at War's root directory
+> Drag (d3d9.dll)[https://github.com/ineedbots/T4M/releases] into World at War's root directory
 
 ## Developers:
 - DidUknowiPwn
@@ -45,6 +46,7 @@ Installing the T4M mod is extremely simple:
 - HitmanVere
 - Ray1235
 - ProGamerzFTW
+- INeedGames
 
 ## Notes
 - No Border: Enter this into console to enable no border -> r_fullscreen 0;vid_xpos 0;vid_ypos 0;r_noborder 1;vid_restart
