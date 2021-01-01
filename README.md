@@ -5,6 +5,7 @@ The mod works for valid versions of World at War on Steam or CD versions with a 
 Modders can view the full release of T4M [here](https://www.ugx-mods.com/forum/index.php?topic=8092.0) on UGX-mods.
 
 > CD versions of World at War SP require the [LanFixed exe](http://bit.ly/1nqdKEF)
+
 > Steam and CD versions of World at War MP require the [LanFixed exe](https://bit.ly/3803IUC)
 
 ## Features
@@ -34,7 +35,7 @@ Modders can view the full release of T4M [here](https://www.ugx-mods.com/forum/i
 
 ## Installation
 Installing the T4M mod is extremely simple:
-> Drag (d3d9.dll)[https://github.com/ineedbots/T4M/releases] into World at War's root directory
+> Drag [d3d9.dll](https://github.com/ineedbots/T4M/releases) into World at War's root directory
 
 ## Developers:
 - DidUknowiPwn
