@@ -840,6 +840,41 @@ void PatchT4MP_SteamDRM()
 const char* SetConsoleVersion();
 const char* SetShortVersion();
 void loadGameOverlay();
+static dvar_t* r_noborder;
+static StompHook windowedWindowStyleHook;
+
+static void __declspec(naked) WindowedWindowStyleHookStub()
+{
+	if (r_noborder->current.boolean)
+	{
+		__asm mov ebp, WS_VISIBLE | WS_POPUP
+	}
+	else
+	{
+		__asm mov ebp, WS_VISIBLE | WS_SYSMENU | WS_CAPTION
+	}
+
+	__asm retn
+}
+
+dvar_t* Dvar_RegisterBoolMP(bool value, const char *dvarName, int flags, const char *description)
+{
+	DWORD _Dvar_RegisterBool = 0x5C5190;
+	dvar_t* result = 0;
+
+	__asm
+	{
+		push description
+		push flags
+		mov al, value
+		mov edi, dvarName
+		call _Dvar_RegisterBool
+		add     esp, 8h
+		mov result, eax
+	}
+
+	return result;
+}
 
 void PatchT4MP()
 {
@@ -880,6 +915,23 @@ void PatchT4MP()
 
 	// allow changing g_antilag
 	*(BYTE*)0x4FDA31 = 0;
+
+	r_noborder = Dvar_RegisterBoolMP(0, "r_noborder", DVAR_FLAG_ARCHIVE, "Remove the border when running in windowed mode (set vid_xpos and vid_ypos to 0).");
+
+	windowedWindowStyleHook.initialize(0x6ABAA3, WindowedWindowStyleHookStub, 5, false);
+	windowedWindowStyleHook.installHook();
+
+
+	*(BYTE*)0x494C5C = 0xEB; // force enable ingame console
+	DWORD func = 0x5D5470;
+	__asm
+	{
+		call func
+	}
+
+
+	nop(0x564CB9, 5); // don't play intro video
+	nop(0x5CEB56, 5); // disable pc_newversionavailable check
 
 
 	nop(0x5CF675, 5); // remove optimal settings popup
