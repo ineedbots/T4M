@@ -913,6 +913,10 @@ void PatchT4MP()
 	Detours::X86::DetourFunction((PBYTE)0x57945D, (PBYTE)&BuildBotConnectStr, Detours::X86Option::USE_CALL);
 
 
+	// allow users to try to connect without cdkey
+	*(BYTE*)0x49E992 = 0xEB; // change jnz to jmp
+	*(BYTE*)0x49E940 = 0xEB;
+
 	// allow changing g_antilag
 	*(BYTE*)0x4FDA31 = 0;
 
