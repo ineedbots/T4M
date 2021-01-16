@@ -12,332 +12,234 @@
 // ==========================================================
 
 #include "StdInc.h"
-#include "Script.h"
+#include "T4.h"
 
+int __cdecl Scr_GetNumParam(scriptInstance_t inst);
 
-static int Scr_GetInt(int slot)
+dvar_t** developer = (dvar_t**)0x01F55288;
+dvar_t** developer_script = (dvar_t**)0x01F9646C;
+dvar_t** logfile = (dvar_t**)0x01F552BC;
+
+dvar_t* developer_funcdump;
+
+// custom functions
+typedef struct
 {
-	int result = 0;
+	const char* functionName;
+	scr_function_t functionCall;
+	int developerOnly;
+} scr_funcdef_t;
 
-	DWORD _Scr_GetInt = 0x699C50;
-	__asm
+
+#pragma region setupFunctions
+static std::map<std::string, scr_funcdef_t> scriptFunctions;
+
+scr_function_t Scr_GetCustomFunction(const char** name, int* isDeveloper)
+{
+	scr_funcdef_t func = scriptFunctions[*name];
+
+	if (func.functionName)
 	{
-		mov ecx, slot
-		mov eax, 0
-		call _Scr_GetInt
-		mov result, eax
+		*name = func.functionName;
+		*isDeveloper = func.developerOnly;
+
+		return func.functionCall;
 	}
-
-	return result;
-}
-
-static char* Scr_GetString(int slot)
-{
-	unsigned int result = 0;
-	char* ret = 0;
-
-	DWORD _Scr_GetString = 0x699F30;
-	__asm
-	{
-		push slot
-		mov eax, 0
-		call _Scr_GetString
-		add esp, 4
-		mov result, eax
-	}
-
-	if (result)
-	{
-		unsigned int heapScrPtr = *(unsigned int *)0x3702390;
-
-		ret = (char*)(heapScrPtr + 12 * result + 4);
-	}
-
-	return ret;
-}
-
-static void Scr_AddBool(int send)
-{
-	DWORD _Scr_AddBool = 0x69A8D0;
-
-	__asm
-	{
-		mov esi, send
-		mov eax, 0
-		call _Scr_AddBool
-	}
-}
-
-static void Scr_AddString(char* stri)
-{
-	DWORD _Scr_AddString = 0x69A7E0;
-
-	__asm
-	{
-		push stri
-		mov eax, 0
-		call _Scr_AddString
-		add esp, 4
-	}
-}
-
-static void FS_FreeFile(char* buffer)
-{
-	*(DWORD*)0x2123C18 -= 1;
-	DWORD Hunk_FreeTempMemory = 0x5E4580;
-	__asm
-	{
-		mov esi, buffer
-		call Hunk_FreeTempMemory
-	}
-}
-
-static int FS_ReadFile(char* path, char** buffer)
-{
-	char* buff = nullptr;
-
-	DWORD _FS_ReadFile = 0x5DBFB0;
-	int result;
-	void* a = &buff;
-	__asm
-	{
-		push a
-		mov eax, path
-		call _FS_ReadFile
-		mov result, eax
-		add esp, 4
-	}
-
-	*buffer = buff;
-	return result;
-}
-
-static int FS_FOpenFileWrite(char *path)
-{
-	DWORD _FS_FOpenFileWrite = 0x5DB1F0;
-	int result;
-
-	__asm
-	{
-		push 0
-		push path
-		call _FS_FOpenFileWrite
-		add     esp, 8
-		mov result, eax
-	}
-
-	return result;
-}
-
-static int FS_FOpenFileAppend(char *path)
-{
-	DWORD _FS_FOpenFileAppend = 0x5DB2E0;
-	int result;
-
-	__asm
-	{
-		push 0
-		push path
-		call _FS_FOpenFileAppend
-		add     esp, 8
-		mov result, eax
-	}
-
-	return result;
-}
-
-static int FS_Write(char *buff, size_t buffSize, int fd)
-{
-	int result;
-	DWORD _FS_Write = 0x5DBED0;
-
-	__asm
-	{
-		push fd
-		push buffSize
-		mov ecx, buff
-		call _FS_Write
-		add esp, 8
-		mov result, eax
-	}
-
-	return result;
-}
-
-static void FS_FCloseFile(int fd)
-{
-	DWORD _FS_FCloseFile = 0x5DB060;
-
-	__asm
-	{
-		mov eax, fd
-		call _FS_FCloseFile
-	}
-}
-
-
-static void testMethod(unsigned int gNum)
-{
-	Scr_AddBool(Scr_GetInt(0));
-}
-
-static void debugBox()
-{
-	char* str = Scr_GetString(0);
-
-	if (!str)
-		return;
-
-	MessageBoxA(nullptr, str, "DEBUG", 0);
-}
-
-static void fileRead()
-{
-	char* file = Scr_GetString(0);
-
-	if (!file)
-		return;
-
-	char* buf;
-	int size = FS_ReadFile(file, &buf);
-
-	if (size < 0)
-		return;
-
-	Scr_AddString(buf);
-
-	FS_FreeFile(buf);
-}
-
-static void fileWrite()
-{
-	char* file = Scr_GetString(0);
-	if (!file)
-		return;
-
-	char* data = Scr_GetString(1);
-	if (!data)
-		return;
-
-	size_t dataSize = strlen(data);
-	int mode = 0; // write
-	char *modeStr = Scr_GetString(2);
-
-	if (modeStr && !strcmp(modeStr, "append"))
-		mode = 1; // append
-
-	int fd;
-
-	if (!mode)
-		fd = FS_FOpenFileWrite(file);
 	else
-		fd = FS_FOpenFileAppend(file);
-
-	if (fd < 1)
-		return;
-
-	FS_Write(data, dataSize, fd);
-
-	FS_FCloseFile(fd);
-
-	Scr_AddBool(true);
+		return NULL;
 }
 
 
-static void* __cdecl GetMethods(const char** name)
+void Scr_DeclareFunction(const char* name, scr_function_t func, bool developerOnly = false)
 {
-	if (!name || !*name)
-		return nullptr;
+	scr_funcdef_t funcDef;
+	funcDef.functionName = name;
+	funcDef.functionCall = func;
+	funcDef.developerOnly = (developerOnly) ? 1 : 0;
 
-	if (!strcmp(*name, "testmethod"))
-		return testMethod;
+	scriptFunctions[name] = funcDef;
+}
+#pragma endregion setupFunctions
 
-	return nullptr;
+#pragma region engineFunctions
+int __cdecl Scr_GetNumParam(scriptInstance_t inst)
+{
+	DWORD *value = (DWORD *)0x03BD471C; // getNumParamArray location
+	return value[4298 * inst];
 }
 
-static DWORD sub_5305B0 = 0x5305B0;
-static __declspec(naked) void GetMethodsStub()
+RefString *__cdecl GetRefString(scriptInstance_t inst, unsigned int stringValue)
+{
+	DWORD *gScrMemTreePub = (DWORD *)0x03702390;
+	return (RefString *)&(&gScrMemTreePub)[3 * stringValue + 1];
+}
+
+char *__cdecl SL_ConvertToString(unsigned int stringValue, scriptInstance_t inst)
+{
+	char *v3;
+	if (stringValue)
+		v3 = GetRefString(inst, stringValue)->str;
+	else
+		v3 = 0;
+	return v3;
+}
+
+void Scr_ClearOutParams(scriptInstance_t v1)
+{
+	static DWORD dwCall = 0x00693DA0;
+
+	__asm
+	{
+		mov edi, v1
+		call[dwCall]
+	}
+}
+
+void __cdecl IncInParam(scriptInstance_t inst)
+{
+	Scr_ClearOutParams(inst);
+
+	// TO-DO: define sys_error
+	//if (dword_A05AC98[4298 * inst] == dword_A05AC8C[4298 * inst])
+	//	Sys_Error("Internal script stack overflow");
+	((DWORD *)0xA05AC98)[4296 * inst] += 8;
+	++((DWORD *)0xA05ACA0)[4296 * inst];
+}
+
+void __cdecl Scr_AddInt(int value, scriptInstance_t inst)
+{
+	IncInParam(inst);
+	*(DWORD *)((((DWORD *)0x03BD4710)[4296 * value]) + 4) = 6;
+	*(DWORD *)(((DWORD *)0x03BD4710)[4296 * value]) = value;
+}
+#pragma endregion engineFunctions
+
+#pragma region engineHKFunctions
+void(__cdecl *__cdecl Scr_GetFunction_Hook(const char **pName, int *type))()
+{
+	// this is aids and I don't care
+	// also if running debugger and a customf func is executed the debugger will instadie
+	void(__cdecl *function)();
+	// check if the function passed is part of our custom funcs
+	if (!(scriptFunctions.find(std::string(*pName)) != scriptFunctions.end()))
+		function = (void(__cdecl *)())Scr_GetFunction(pName, type);
+	else
+		function = (void(__cdecl *)())Scr_GetCustomFunction(pName, type);
+
+	if (developer_funcdump->current.boolean && function != 0)
+		Com_Printf(0, "[GSC] Function: %s\nType: %i\nAddress: 0x%X\n\n", *pName, *type, function);
+
+	return function;
+}
+
+int Scr_GetMethod(int *type, const char **pName)
+{
+	// also aids and again do not care. #3
+	int function;
+
+	*type = 0;
+	function = Player_GetMethod(pName);
+
+	if (!function)
+	{
+		function = ScriptEnt_GetMethod(pName);
+		if (!function)
+		{
+			function = ScriptVehicle_GetMethod(pName);
+			if (!function)
+			{
+				function = HudElem_GetMethod(pName);
+				if (!function)
+				{
+					function = Helicopter_GetMethod(pName);
+					if (!function)
+					{
+						function = Actor_GetMethod(pName);
+						if (!function)
+							function = BuiltIn_GetMethod(pName, type);
+					}
+				}
+			}
+		}
+	}
+
+	if (developer_funcdump->current.boolean && function != 0)
+		Com_Printf(0, "[GSC] Method: %s\nType: %i\nAddress: 0x%X\n\n", *pName, *type, function);
+
+	return function;
+}
+
+
+void __declspec(naked) Scr_GetMethod_Hook(int *type, const char **pName)
 {
 	__asm
 	{
-		// original code
-		push    edi
-		push    esi
-		call    sub_5305B0
-		add     esp, 8
-
-		// test if the method is still null
-		test    eax, eax
-		jnz     short returnSafe
-
-		// try our custom gsc methods
-		push    esi
-		call    GetMethods
-		add     esp, 4
-
-		// return back
-	returnSafe:
-		push 53068Eh
+		push esi // pName
+		push edi // type
+		call Scr_GetMethod
+		add esp, 8
 		retn
 	}
 }
 
-static void* __cdecl GetFunctions(const char* name)
+void(__cdecl *__cdecl CScr_GetFunction_Hook(const char **pName, int *type))()
 {
-	if (!name)
-		return nullptr;
+	// this is aids and I don't care #2
+	// also if running debugger and a customf func is executed the debugger will instadie
+	void(__cdecl *function)();
 
-	if (!strcmp(name, "fileread"))
-		return fileRead;
+	function = (void(__cdecl *)())CScr_GetFunction(pName, type);
 
-	if (!strcmp(name, "filewrite"))
-		return fileWrite;
+	if (developer_funcdump->current.boolean && function != 0)
+		Com_Printf(0, "[CSC] Function: %s\nType: %i\nAddress: 0x%X\n\n", *pName, *type, function);
 
-	if (!strcmp(name, "debugbox"))
-		return debugBox;
-
-	return nullptr;
+	return function;
 }
 
-static __declspec(naked) void GetFunctionStub()
+void(__cdecl *__cdecl CScr_GetMethod_Hook(const char **pName, int *type))()
 {
-	__asm
-	{
-		// original code we patched over
-		push    esi
-		push    edi
-		xor edi, edi
-		xor esi, esi
-		nop
+	// aids #3 woo!
+	void(__cdecl *function)();
 
-		// call our custom gsc
-		push ebx
-		call GetFunctions
-		add     esp, 4
+	function = (void(__cdecl *)())CScr_GetMethod(pName, type);
 
-		// test if we need to hook our custom call
-		test    eax, eax
-		jz returnSafe
+	if (developer_funcdump->current.boolean && function != 0)
+		Com_Printf(0, "[CSC] Method: %s\nType: %i\nAddress: 0x%X\n\n", *pName, *type, function);
 
-		// return from the function with the answer
-		pop     edi
-		pop     esi
-		pop     ebp
-		pop     ebx
-		retn
-
-
-	returnSafe:
-		// return to normal execution
-		push 52F0C0h
-		retn
-	}
+	return function;
 }
+#pragma endregion engineHKFunctions
 
-
-void PatchT4Script()
+#pragma region customFunctions
+void GScr_PrintLnConsole(scr_entref_t entity)
 {
-	// Patch the Scr_GetMethod so we can use custom GSC calls
-	Detours::X86::DetourFunction((PBYTE)0x530684, (PBYTE)&GetMethodsStub, Detours::X86Option::USE_JUMP);
-	Detours::X86::DetourFunction((PBYTE)0x52F0B9, (PBYTE)&GetFunctionStub, Detours::X86Option::USE_JUMP);
+	// gets amount of parameters
+	if (Scr_GetNumParam(SCRIPTINSTANCE_SERVER) == 1)
+		Com_Printf(0, "^3Have one!\n");
+	else
+		Com_Printf(0, "^1the cake is a lie\n\n");
+	// iz ded af
+	//Scr_AddInt(Scr_GetNumParam(SCRIPTINSTANCE_SERVER), SCRIPTINSTANCE_SERVER);
+}
+#pragma endregion customFunctions
+
+void PatchT4_Script()
+{
+	developer_funcdump = Dvar_RegisterBool(0, "developer_funcdump", 0, "Dump script function information (engine).");
+
+	// [GSC]
+	Detours::X86::DetourFunction((PBYTE)0x00682DAF, (PBYTE)&Scr_GetFunction_Hook, Detours::X86Option::USE_CALL);
+	Detours::X86::DetourFunction((PBYTE)0x00683043, (PBYTE)&Scr_GetMethod_Hook, Detours::X86Option::USE_CALL);
+	Scr_DeclareFunction("printlnconsole", GScr_PrintLnConsole);
+
+	// [CSC]
+	Detours::X86::DetourFunction((PBYTE)0x00682DC0, (PBYTE)&CScr_GetFunction_Hook, Detours::X86Option::USE_CALL);
+	Detours::X86::DetourFunction((PBYTE)0x0068305C, (PBYTE)&CScr_GetMethod_Hook, Detours::X86Option::USE_CALL);
+
+	nop(0x00465441, 2); // disable jnz on I_strnicmp for tesla notetrack
+
+	// DON'T USE
+	//nop(0x00668EDC, 5);
+	//nop(0x00668F86, 5);
+	//nop(0x00668E63, 5);
 }
