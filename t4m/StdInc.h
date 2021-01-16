@@ -11,6 +11,9 @@
 
 #include <zlib.h>
 
+#define CURL_STATICLIB
+#include <curl.h>
+
 #include "resource.h"
 
 #include "Hooking.h"

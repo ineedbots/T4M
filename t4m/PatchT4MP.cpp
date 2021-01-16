@@ -20,6 +20,9 @@
 
 #define MAX_G_BOTAI_ENTRIES     64
 
+FILE _iob[] = { *stdin, *stdout, *stderr }; 
+extern "C" FILE * __cdecl __iob_func(void) { return _iob; }
+
 typedef struct client_s {
 	int state; // 0 - 4
 	char pad[4]; // 4 - 8
@@ -891,26 +894,26 @@ void PatchT4MP()
 	}
 
 	// Prevent the default behaviour of the bots
-	Detours::X86::DetourFunction((PBYTE)0x57F46B, (PBYTE)&NOOP, Detours::X86Option::USE_CALL);
+	Detours::X86::DetourFunction((uintptr_t)0x57F46B, (uintptr_t)&NOOP, Detours::X86Option::USE_CALL);
 
 	// Have the bots perform actions according to their g_botai entry
-	Detours::X86::DetourFunction((PBYTE)0x57F6C4, (PBYTE)&SV_UpdateBotsStub, Detours::X86Option::USE_CALL);
+	Detours::X86::DetourFunction((uintptr_t)0x57F6C4, (uintptr_t)&SV_UpdateBotsStub, Detours::X86Option::USE_CALL);
 
 	// Patch the Scr_GetMethod so we can use custom GSC calls
-	Detours::X86::DetourFunction((PBYTE)0x5233A4, (PBYTE)&GetMethodsStub, Detours::X86Option::USE_JUMP);
-	Detours::X86::DetourFunction((PBYTE)0x523259, (PBYTE)&GetFunctionStub, Detours::X86Option::USE_JUMP);
+	Detours::X86::DetourFunction((uintptr_t)0x5233A4, (uintptr_t)&GetMethodsStub, Detours::X86Option::USE_JUMP);
+	Detours::X86::DetourFunction((uintptr_t)0x523259, (uintptr_t)&GetFunctionStub, Detours::X86Option::USE_JUMP);
 
 	// Patch incoming connectionless messages
-	Detours::X86::DetourFunction((PBYTE)0x57EB55, (PBYTE)&SV_ConnectionlessPacketStub, Detours::X86Option::USE_CALL);
+	Detours::X86::DetourFunction((uintptr_t)0x57EB55, (uintptr_t)&SV_ConnectionlessPacketStub, Detours::X86Option::USE_CALL);
 
 	// Allow Remote desktop
-	Detours::X86::DetourFunction((PBYTE)0x5D06F2, (PBYTE)0x5D0721, Detours::X86Option::USE_JUMP);
+	Detours::X86::DetourFunction((uintptr_t)0x5D06F2, (uintptr_t)0x5D0721, Detours::X86Option::USE_JUMP);
 
 	// Use our connect string
 	*(char **)0x579458 = botConnectStr;
 
 	// intersept connect string sprintf
-	Detours::X86::DetourFunction((PBYTE)0x57945D, (PBYTE)&BuildBotConnectStr, Detours::X86Option::USE_CALL);
+	Detours::X86::DetourFunction((uintptr_t)0x57945D, (uintptr_t)&BuildBotConnectStr, Detours::X86Option::USE_CALL);
 
 
 	// allow users to try to connect without cdkey
@@ -943,7 +946,7 @@ void PatchT4MP()
 
 	PatchMemory(0x856380, (PBYTE)CONSOLEVERSION_STR, 14);	// change the console input version
 
-	Detours::X86::DetourFunction((PBYTE)0x592B11, (PBYTE)&SetShortVersion, Detours::X86Option::USE_CALL); // change version number bottom right of main
-	Detours::X86::DetourFunction((PBYTE)0x48C532, (PBYTE)&SetConsoleVersion, Detours::X86Option::USE_CALL); // change the version info of console window
-	Detours::X86::DetourFunction((PBYTE)0x5658ED, (PBYTE)&SetConsoleVersion, Detours::X86Option::USE_CALL); // change the version info of version 
+	Detours::X86::DetourFunction((uintptr_t)0x592B11, (uintptr_t)&SetShortVersion, Detours::X86Option::USE_CALL); // change version number bottom right of main
+	Detours::X86::DetourFunction((uintptr_t)0x48C532, (uintptr_t)&SetConsoleVersion, Detours::X86Option::USE_CALL); // change the version info of console window
+	Detours::X86::DetourFunction((uintptr_t)0x5658ED, (uintptr_t)&SetConsoleVersion, Detours::X86Option::USE_CALL); // change the version info of version 
 }

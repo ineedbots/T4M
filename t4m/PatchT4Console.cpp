@@ -104,7 +104,7 @@ void FilterConsoleSpam()
 
 void PatchT4_ExternalConsole()
 {
-	Detours::X86::DetourFunction((PBYTE)0x0059D0F3, (PBYTE)&ShowExternalConsole, Detours::X86Option::USE_CALL);
+	Detours::X86::DetourFunction((uintptr_t)0x0059D0F3, (uintptr_t)&ShowExternalConsole, Detours::X86Option::USE_CALL);
 }
 
 void PatchT4_ConsoleBox()
@@ -177,7 +177,7 @@ void ShitTest()
 
 void PatchT4_ConsoleCommands()
 {
-	Detours::X86::DetourFunction((PBYTE)0x0059CF48, (PBYTE)&Cmd_Init_T4, Detours::X86Option::USE_CALL);
+	Detours::X86::DetourFunction((uintptr_t)0x0059CF48, (uintptr_t)&Cmd_Init_T4, Detours::X86Option::USE_CALL);
 	//Detours::X86::DetourFunction((PBYTE)0x00608D16, (PBYTE)&ShitTest, Detours::X86Option::USE_CALL);
 }
 
@@ -203,7 +203,7 @@ void PatchT4_GetGEnts()
 	// override the lvl free msg
 	PatchMemory(0x0084D5A0, (PBYTE)" total ents", 11);
 	// detour the va call
-	Detours::X86::DetourFunction((PBYTE)0x00439C2D, (PBYTE)&Draw_G_Ents, Detours::X86Option::USE_CALL);
+	Detours::X86::DetourFunction((uintptr_t)0x00439C2D, (uintptr_t)&Draw_G_Ents, Detours::X86Option::USE_CALL);
 	// remove verbose from cg_drawfps array, ends due to null terminator
 	*(DWORD *)0x8CFCE8 = 0;
 	// change jl to jmp, never executes cg_drawfps 3

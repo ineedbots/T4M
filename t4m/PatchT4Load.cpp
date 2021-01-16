@@ -84,7 +84,7 @@ void PatchT4_Load()
 {
 	// to be used?
 	//Detours::X86::DetourFunction((PBYTE)0x006D5728, (PBYTE)&FFLoadHook, Detours::X86Option::USE_CALL);
-	Detours::X86::DetourFunction((PBYTE)0x006D5672, (PBYTE)&ModFFLoadHook, Detours::X86Option::USE_CALL);
+	Detours::X86::DetourFunction((uintptr_t)0x006D5672, (uintptr_t)&ModFFLoadHook, Detours::X86Option::USE_CALL);
 	//00644C5D, r_init
 	//if ((*dedicated)->current.integer > 0)
 	//nop(0x00644C5D, 5);

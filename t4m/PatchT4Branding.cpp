@@ -20,9 +20,9 @@ void PatchT4_Branding()
 	nop(0x5FD91B, 5);										// disable pc_newversionavailable check
 	PatchMemory(0x851208, (PBYTE)CONSOLEVERSION_STR, 14);	// change the console input version
 	PatchMemory(0x871EE8, (PBYTE)va("T4-SP (r%i)\n", VERSION), 32);
-	Detours::X86::DetourFunction((PBYTE)0x5B5A20, (PBYTE)&SetShortVersion, Detours::X86Option::USE_CALL); // change version number bottom right of main
-	Detours::X86::DetourFunction((PBYTE)0x4743D2, (PBYTE)&SetConsoleVersion, Detours::X86Option::USE_CALL); // change the version info of console window
-	Detours::X86::DetourFunction((PBYTE)0x59D393, (PBYTE)&SetConsoleVersion, Detours::X86Option::USE_CALL); // change the version info of version 
+	Detours::X86::DetourFunction((uintptr_t)0x5B5A20, (uintptr_t)&SetShortVersion, Detours::X86Option::USE_CALL); // change version number bottom right of main
+	Detours::X86::DetourFunction((uintptr_t)0x4743D2, (uintptr_t)&SetConsoleVersion, Detours::X86Option::USE_CALL); // change the version info of console window
+	Detours::X86::DetourFunction((uintptr_t)0x59D393, (uintptr_t)&SetConsoleVersion, Detours::X86Option::USE_CALL); // change the version info of version 
 }
 
 const char* SetConsoleVersion()
