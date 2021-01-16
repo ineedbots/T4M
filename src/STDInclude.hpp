@@ -83,6 +83,11 @@ template <size_t S> class Sizer { };
 
 #pragma warning(pop)
 
+#include "Utils/Hooking.hpp"
+
+#include "Game/MP.hpp"
+#include "Game/SP.hpp"
+
 // Libraries
 #pragma comment(lib, "Winmm.lib")
 #pragma comment(lib, "Crypt32.lib")

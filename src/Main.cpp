@@ -28,8 +28,11 @@ namespace Main
 			UnprotectModule(hModule);
 		}
 
-		//Sys_RunInit();
-		MessageBoxA(nullptr, "ok", "DEBUG", 0);
+		DWORD dataStrData = Utils::Hook::Get<DWORD>(0x881CAC);
+		if (dataStrData == 0x62616E55)
+			MP::PatchT4();
+		else
+			SP::PatchT4();
 
 		hModule = GetModuleHandle(NULL);
 		PIMAGE_DOS_HEADER header = (PIMAGE_DOS_HEADER)hModule;
@@ -75,7 +78,9 @@ bool APIENTRY DllMain(HMODULE, DWORD dwReason, LPVOID)
 {
 	if (dwReason == DLL_PROCESS_ATTACH)
 	{
-		Main::SetSafeInit();
+		DWORD textSegData = Utils::Hook::Get<DWORD>(0x401000);
+		if (textSegData == 0x9EF490B8 || textSegData == 0x83EC8B55) // If steam or lanfixed T4 SP/MP
+			Main::SetSafeInit();
 	}
 	return true;
 }
